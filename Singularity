@@ -10,6 +10,11 @@ gedi_to_gee.py
 exec python3 gedi_to_gee.py
 
 %post
+# install pip
+wget https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+export PATH=$HOME/.local/bin:$PATH
+
 # install Python packages
 pip install fiona
 pip install pyproj
