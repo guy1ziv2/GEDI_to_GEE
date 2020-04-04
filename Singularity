@@ -9,6 +9,9 @@ my-secret-key.json
 %runscript
 exec python3 gedi_to_gee.py
 
+%environment
+home=/home/home02/geogz
+
 %post
 CLOUD_SDK_VERSION=232.0.0
 
