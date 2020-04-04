@@ -1,176 +1,31 @@
 {
-  "name": "projects/datalab-gee/assets/GEDI_L2B/ASSET_ID",
+  "name": "projects/datalab-gee/assets/ASSET_ID/IMAGE_ASSET_ID",
   "tilesets": [
-    {
-      "id": "cover",
-      "sources": [
-        {
-          "uris": [
-            "cover.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "beam",
-      "data_type": "UINT8",
-      "sources": [
-        {
-          "uris": [
-            "beam.tif"
-          ]
-        }
-      ] 
-    },
-    {
-      "id": "channel",
-      "data_type": "UINT8",
-      "sources": [
-        {
-          "uris": [
-            "channel.tif"
-          ]
-        }
-      ] 
-    },
-    {
-      "id": "fhd_normal",
-      "sources": [
-        {
-          "uris": [
-            "fhd_normal.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "pai",
-      "sources": [
-        {
-          "uris": [
-            "pai.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "dem",
-      "sources": [
-        {
-          "uris": [
-            "dem.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rh100",
-      "sources": [
-        {
-          "uris": [
-            "rh100.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "solar_elevation",
-      "sources": [
-        {
-          "uris": [
-            "solar_elevation.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "pgap_theta",
-      "sources": [
-        {
-          "uris": [
-            "pgap_theta.tif"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "quality_flag",
-      "data_type": "UINT8",
-      "sources": [
-        {
-          "uris": [
-            "quality_flag.tif"
-          ]
-        }
-      ]
-    }
-  ],
-  "bands": [
-    {
-      "id": "cover",
-      "tileset_id": "cover"
-    },
-    {
-      "id": "beam",
-      "tileset_id": "beam",
-      "pyramiding_policy": "MODE",
-      "missing_data": {
-        "values": [255]
-      }
-    },
-    {
-      "id": "channel",
-      "tileset_id": "channel",
-      "pyramiding_policy": "MODE",
-      "missing_data": {
-        "values": [255]
-      }
-    },
-    {
-      "id": "dem",
-      "tileset_id": "dem"
-    },
-    {
-      "id": "fhd_normal",
-      "tileset_id": "fhd_normal"
-    },
-    {
-      "id": "pai",
-      "tileset_id": "pai"
-    },
-    {
-      "id": "rh100",
-      "tileset_id": "rh100"
-    },
-    {
-      "id": "solar_elevation",
-      "tileset_id": "solar_elevation"
-    },
-    {
-      "id": "pgap_theta",
-      "tileset_id": "pgap_theta"
-    },
-    {
-      "id": "quality_flag",
-      "tileset_id": "quality_flag",
-      "pyramiding_policy": "MODE",
-      "missing_data": {
-        "values": [255]
-      }
-    }
-  ],
-  "pyramiding_policy": "MEAN",
-  "uri_prefix": "URI_PREFIX",
-  "missing_data": {
-    "values": [-9999]
-  },
-  "start_time": {
-      "seconds": TIME_START
-  },
-  "end_time": {
-      "seconds": TIME_END
-  },
-  "properties": {
-    "hdf5file": "HDF5_FILE"
-  }
+    {"id": "cover", "sources": [{"uris": ["cover.tif"]}]},
+    {"id":"beam","data_type":"UINT8","sources":[{"uris":["beam.tif"]}]},
+    {"id":"channel","data_type":"UINT8","sources":[{"uris":["channel.tif"]}]},
+    {"id":"fhd_normal","sources":[{"uris":["fhd_normal.tif"]}]},
+    {"id":"pai","sources":[{"uris":["pai.tif"]}]},
+    {"id":"dem","sources":[{"uris":["dem.tif"]}]},
+    {"id":"rh100","sources":[{"uris":["rh100.tif"]}]},
+    {"id":"solar_elevation","sources":[{"uris":["solar_elev.tif"]}]},
+    {"id":"pgap_theta","sources":[{"uris":["pgap_theta.tif"]}]},
+    {"id":"quality_flag","data_type":"UINT8","sources":[{"uris":["quality_fl.tif"]}]}],
+  "bands":[
+    {"id":"cover","tileset_id":"cover"},
+    {"id":"beam","tileset_id":"beam","pyramiding_policy":"MODE","missing_data":{"values":[255]}},
+    {"id":"channel","tileset_id":"channel","pyramiding_policy":"MODE","missing_data":{"values":[255]}},
+    {"id":"dem","tileset_id":"dem"},
+    {"id":"fhd_normal","tileset_id":"fhd_normal"},
+    {"id":"pai","tileset_id":"pai"},
+    {"id":"rh100","tileset_id":"rh100"},
+    {"id":"solar_elevation","tileset_id":"solar_elevation"},
+    {"id":"pgap_theta","tileset_id":"pgap_theta"},
+    {"id":"quality_flag","tileset_id":"quality_flag","pyramiding_policy":"MODE","missing_data":{"values":[255]}}],
+  "pyramiding_policy":"MEAN",
+  "uri_prefix":"URI_PREFIX",
+  "missing_data":{"values":[-9999]},
+  "start_time":{"seconds":TIME_START},
+  "end_time":{"seconds":TIME_END},
+  "properties":{"hdf5file":"HDF5_FILE", "total_points":TOTAL_POINTS}
 }

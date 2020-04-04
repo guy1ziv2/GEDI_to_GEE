@@ -1,41 +1,14 @@
-import subprocess
-import h5py
-import re
-import numpy as np
-import csv
+import warnings, subprocess, os, numpy as np, h5py
+import re, csv, tempfile
 from shapely.geometry import Point, mapping
 from fiona import collection
 from pyproj import Proj, transform
-import warnings
-import os
-import tempfile
-import sys
-
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
-# get URL from environmental variable
-URL = os.environ['URL']
-print('Ingesting GEDI URL file {}...'.format(URL))
-
-# some run information
-HOME_DIR = '/content'
-SERVICE_ACCOUNT='datalab-gee@appspot.gserviceaccount.com'
-KEY = HOME_DIR+'/my-secret-key.json'
-
-# get a temp directory, use TEMP_BASE environmental variable (if exists) to set to a different root than usual (e.g. /nobackup/geogz on Leeds HPC)
-try:
-  temp_dir = tempfile.mkdtemp(dir=os.environ['TEMP_BASE'])
-except:
-  temp_dir = tempfile.mkdtemp()
-os.chdir(temp_dir)
-
-print('Created temp directory {}...'.format(temp_dir))
 
 def toScaledInt(val,multiply):
   val[val != -9999] = np.round(val[val != -9999]*multiply)
   return(val.astype(int))
 
-def extract_shapefile(f,min_lon,max_lon,min_lat,max_lat,crs):
+def extract_shapefile(f,min_lon,min_lat,max_lon,max_lat,crs="EPSG:4326"):
   schema = { 'geometry': 'Point', 'properties': { 'cover': 'int' , 'beam': 'int', 'channel': 'int', 'dem': 'int', 'fhd_normal': 'int', 'pai': 'int', 'rh100': 'int', 'pgap_theta': 'int', 'solar_elev': 'int', 'quality_fl': 'int'} }
   r = re.compile("BEAM.*")
   keys = list(filter(r.match, f.keys()))
@@ -102,56 +75,49 @@ def extract_shapefile(f,min_lon,max_lon,min_lat,max_lat,crs):
         })
   time_start = min(time_start)
   time_end = max(time_end)
-  if total_points == 0:
-    raise Exception('No points in lon/lat range')
-  return(time_start, time_end)
+  return(time_start, time_end, total_points)
 
-# Authorize gcloud and earthengine using service account. Prepare bucket if not exists
-print('authorizing Google services...')
-subprocess.run("gcloud config set project datalab-gee", shell=True)
-subprocess.run("gcloud auth activate-service-account --key-file={}".format(KEY), shell=True)
-subprocess.run(['gsutil','mb','gs://guy1ziv2_gee_transfer']) 
+def rasterize(min_lon,min_lat,max_lon,max_lat):
+  fields_byte = ['channel','beam','quality_fl']
+  for field in fields_byte:
+    subprocess.run('gdal_rasterize -init 255 -a {} -ot byte -tr 0.000225 0.000225 -te {} {} {} {} data.shp {}.tif'.format(field,min_lon,min_lat,max_lon,max_lat,field),shell=True, check=True)
+  fields_int16 = ['cover','fhd_normal','pai','rh100','solar_elev','dem','pgap_theta']
+  for field in fields_int16:
+    subprocess.run('gdal_rasterize -init -9999 -a {} -ot int16 -tr 0.000225 0.000225 -te {} {} {} {} data.shp {}.tif'.format(field,min_lon,min_lat,max_lon,max_lat,field),shell=True, check=True)
 
-# Download HDF5 from LP DAAC server
-print('download HDF5 from {}....'.format(URL))
-subprocess.run(['wget',URL]) 
+np.warnings.filterwarnings('ignore')
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# Set up all 120 UTM zones
-utms = [{'UTM': '_UTM{}S'.format(x), 'min_lon': -186+x*6, 'max_lon': -180+x*6, 'min_lat': -90, 'max_lat': 0, 'crs': 'EPSG:{}'.format(x+32700)} for x in range(1,61)]
-utms += [{'UTM': '_UTM{}N'.format(x), 'min_lon': -186+x*6, 'max_lon': -180+x*6, 'min_lat': 0, 'max_lat': 90, 'crs': 'EPSG:{}'.format(x+32600)} for x in range(1,61)]
+subprocess.run(['gsutil','mb','gs://guy1ziv2_gee_transfer/']) # make sure bucket exists
 
-# Read HDF5 file
-print('reading HDF5 file...')
+HOME_DIR = os.environ['HOME_DIR']
+KEY = HOME_DIR+'/my-secret-key.json'
+
+ASSET_ID = os.environ['ASSET_ID']
+MINX, MINY, MAXX, MAXY = float(os.environ['MINX']), float(os.environ['MINY']), float(os.environ['MAXX']), float(os.environ['MAXY'])
+
+URL = os.environ['URL']
+
+TEMP_BASE = os.environ['TEMP_BASE']
+temp_dir = tempfile.mkdtemp(dir=TEMP_BASE)
+os.chdir(temp_dir)
+
+print('Created temp directory {}...'.format(temp_dir))
+
 file_name = os.path.basename(URL)
-f = h5py.File(file_name, 'r')
-
-# Loop over zones
-for utm in utms:
-  try:
-    # extract points for particular UTM zone into data.shp ESRI Shapefile
-    time_start, time_end = extract_shapefile(f,utm['min_lon'], utm['max_lon'], utm['min_lat'], utm['max_lat'], utm['crs'])
-  except:
-    # print('error processing utm {} (probably no points in sector), skipping...'.format(utm))
-    continue
-  ASSET_ID = os.path.splitext(file_name)[0]+utm['UTM']
-  print('processing asset {}...'.format(ASSET_ID))
-  # run GDAL to rasterize 25m resolution GeoTIFFs for selected record fields
-  print('rasterizing...')
-  subprocess.run('{}/rasterize_all.sh'.format(HOME_DIR),shell=True,check=True)
-  # copy all files into Cloud Storate
-  print('copying to cloud...')
-  subprocess.run(['gsutil','-m','-o','GSUtil:parallel_composite_upload_threshold=150M','cp','*.tif','gs://guy1ziv2_gee_transfer/{}/'.format(ASSET_ID)],check=True)
-  # prepare manifest
-  bucket_str = 'gs://guy1ziv2_gee_transfer/{}/'.format(ASSET_ID).replace('/','\/')
+print('reading point data from {}...'.format(file_name))
+f = h5py.File(TEMP_BASE+'/'+file_name, 'r')
+time_start, time_end, total_points = extract_shapefile(f, MINX, MINY, MAXX, MAXY)
+if total_points>0:
+  print('raterizing...')
+  rasterize(MINX,MINY,MAXX,MAXY)
+  IMAGE_ASSET_ID,_ = os.path.splitext(file_name)
+  print('copying to GCS...')
+  subprocess.run(['gsutil','cp','*.tif','gs://guy1ziv2_gee_transfer/{}/'.format(IMAGE_ASSET_ID)])
+  bucket_str = 'gs://guy1ziv2_gee_transfer/{}/'.format(IMAGE_ASSET_ID).replace('/','\/')
+  subprocess.run("sed 's/IMAGE_ASSET_ID/{}/; s/ASSET_ID/{}/; s/URI_PREFIX/{}/; s/HDF5_FILE/{}/; s/TIME_START/{}/; s/TIME_END/{}/; s/TOTAL_POINTS/{}/' {}/manifest.template > manifest.json".format(IMAGE_ASSET_ID,ASSET_ID,bucket_str,file_name,time_start,time_end,total_points,HOME_DIR),shell=True)
   print('starting ingestion...')
-  subprocess.run("sed 's/ASSET_ID/{}/; s/URI_PREFIX/{}/; s/HDF5_FILE/{}/; s/TIME_START/{}/; s/TIME_END/{}/' {}/manifest.template > manifest.json".format(ASSET_ID,bucket_str,file_name,time_start,time_end,HOME_DIR),shell=True)
-  # start ingestion, and do not wait for task it to finish
-  subprocess.run("earthengine --service_account_file {}/my-secret-key.json  upload image -f --manifest manifest.json".format(HOME_DIR),shell=True,check=True)
-
-# clean up Cloud Storage --- REMOVED, this need to be done only after all tasks are done
-# for utm in utms:
-#    ASSET_ID = os.path.splitext(file_name)[0]+utm['UTM']
-#    subprocess.run(['gsutil','-m','rm','-r','gs://guy1ziv2_gee_transfer/{}'.format(ASSET_ID)])
-
-# clean up temp directory
-subprocess.run('rm -R {}'.format(temp_dir),shell=True)
+  subprocess.run("earthengine --service_account_file "+HOME_DIR+"/my-secret-key.json  upload image -f --manifest manifest.json",shell=True)
+  subprocess.run('rm -R {}'.format(temp_dir),shell=True)
+else:
+  print('no points within region of interest! skipping file...')
