@@ -14,8 +14,8 @@ HOME=/home/home02/geogz
 
 %post
 CLOUD_SDK_VERSION=232.0.0
-
 apt-get -qqy update && apt-get install -qqy \
+      apt-utils \
       curl \
       gcc \
       python-dev \
