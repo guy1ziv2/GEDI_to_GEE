@@ -1,5 +1,5 @@
 Bootstrap:docker  
-From: tylere/docker-ee-datascience-notebook
+From: continuumio/anaconda3
 
 %files
 gedi_to_gee.py
@@ -10,7 +10,7 @@ my-secret-key.json
 exec python3 gedi_to_gee.py
 
 %environment
-home=/home/home02/geogz
+HOME=/home/home02/geogz
 
 %post
 CLOUD_SDK_VERSION=232.0.0
@@ -34,4 +34,5 @@ apt-get -qqy update && apt-get install -qqy \
   apt-get install -y google-cloud-sdk=${CLOUD_SDK_VERSION}-0 && \
   gcloud --version && \
   gcloud config set project datalab-gee && \
-  gcloud auth activate-service-account --key-file=my-secret-key.json
+  gcloud auth activate-service-account --key-file=my-secret-key.json && \
+  pip install earthengine-api fiona pyproj shapely h5py bs4
