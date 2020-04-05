@@ -15,7 +15,6 @@ HOME=/home/home02/geogz
 %post
 CLOUD_SDK_VERSION=232.0.0
 apt-get -qqy update && apt-get install -qqy \
-      apt-utils \
       curl \
       gcc \
       python-dev \
@@ -24,8 +23,7 @@ apt-get -qqy update && apt-get install -qqy \
       lsb-release \
       openssh-client \
       git \
-      gnupg \
-  && easy_install -U pip && \
+      gnupg && \
   pip install -U crcmod   && \
   export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
   echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" > /etc/apt/sources.list.d/google-cloud-sdk.list && \
